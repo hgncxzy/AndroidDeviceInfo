@@ -12,6 +12,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        initDeviceInfo()
+    }
+
+    private fun initDeviceInfo() {
         val basic = SystemUtils.getSysVersionInfo(this)
         val memory = SystemUtils.getMemoInfo(this)
         val cpu = SystemUtils.getCpuInfo()
@@ -26,4 +30,5 @@ class MainActivity : AppCompatActivity() {
         storageInfo.text = storage
         sensorInfo.text = sensor
     }
+
 }
