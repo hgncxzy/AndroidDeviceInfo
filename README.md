@@ -3,4 +3,4 @@
 
 截图如下：
 
-<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png" width = "300"  div align=center/>
+<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png" width = "400"  div align=center/>
