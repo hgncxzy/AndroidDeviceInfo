@@ -9,6 +9,8 @@ import android.content.res.Resources;
 import android.graphics.Point;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
@@ -16,15 +18,25 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.WindowManager;
 
+import androidx.annotation.RequiresPermission;
+
 import java.io.*;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static android.Manifest.permission.ACCESS_WIFI_STATE;
+import static android.Manifest.permission.INTERNET;
 import static android.content.Context.ACTIVITY_SERVICE;
+import static android.content.Context.WIFI_SERVICE;
 
 /**
  * 系统相关的工具类。另外可以参考 RomUtils.java
@@ -34,6 +46,7 @@ import static android.content.Context.ACTIVITY_SERVICE;
 @SuppressWarnings("all")
 public class SystemUtils {
 
+    private static final String LINE_SEP = System.getProperty("line.separator");
     private static final String SYS_EMUI = "sys_emui";
     private static final String SYS_MIUI = "sys_miui";
     private static final String SYS_FLYME = "sys_flyme";
@@ -123,11 +136,14 @@ public class SystemUtils {
      */
     @SuppressLint("MissingPermission")
     public static String getIMEI(Context ctx) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return "未知,Android 9.0 以后无法获取 IMEI";
+        }
         TelephonyManager tm = (TelephonyManager) ctx.getSystemService(Activity.TELEPHONY_SERVICE);
         try {
             return tm.getDeviceId() + "\n";
         } catch (Exception e) {
-            return null;
+            return "获取 IMEI 异常";
         }
     }
 
@@ -168,7 +184,7 @@ public class SystemUtils {
                 "品牌: " + Build.BRAND + "\n" +
                 "型号: " + Build.MODEL + "\n" +
                 "SDK:  " + Build.VERSION.SDK + "\n" +
-                "分辨率: " + getScreenWidth(context) + "*" + getScreenHeight(context) + "\n" +
+                "屏幕分辨率: " + getScreenWidth(context) + "*" + getScreenHeight(context) + "\n" +
                 "APP 分辨率(去掉状态栏高度和导航栏): " + getAppScreenWidth(context) + "*" + getAppScreenHeight(context) + "\n" +
                 "DPI: " + getScreenDensityDpi() + "\n" +
                 "系统版本: Android " + Build.VERSION.RELEASE + "\n";
@@ -465,11 +481,304 @@ public class SystemUtils {
         for (Map.Entry<Integer, String> item_map : mapSensor.entrySet()) {
             int type = item_map.getKey();
             String name = item_map.getValue();
-            String content = String.format("%d %s：%s\n", type, mSensorType[type - 1], name);
+            String content = String.format("%d .%s：%s\n", type, mSensorType[type - 1], name);
             showContent += content;
         }
         return showContent;
     }
 
+    /**
+     * Return the MAC address.
+     * <p>Must hold {@code <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />},
+     * {@code <uses-permission android:name="android.permission.INTERNET" />}</p>
+     *
+     * @return the MAC address
+     */
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE, INTERNET})
+    public static String getMacAddress(Context context) {
+        String macAddress = getMacAddress(context, (String[]) null);
+        if (!macAddress.equals("") || getWifiEnabled(context)) return macAddress;
+        setWifiEnabled(true, context);
+        setWifiEnabled(false, context);
+        return getMacAddress(context, (String[]) null);
+    }
+
+    private static boolean getWifiEnabled(Context context) {
+        @SuppressLint("WifiManagerLeak")
+        WifiManager manager = (WifiManager) context.getSystemService(WIFI_SERVICE);
+        if (manager == null) return false;
+        return manager.isWifiEnabled();
+    }
+
+    private static void setWifiEnabled(final boolean enabled, Context context) {
+        @SuppressLint("WifiManagerLeak")
+        WifiManager manager = (WifiManager) context.getSystemService(WIFI_SERVICE);
+        if (manager == null) return;
+        manager.setWifiEnabled(enabled);
+    }
+
+    /**
+     * Return the MAC address.
+     * <p>Must hold {@code <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />},
+     * {@code <uses-permission android:name="android.permission.INTERNET" />}</p>
+     *
+     * @return the MAC address
+     */
+    @RequiresPermission(allOf = {ACCESS_WIFI_STATE, INTERNET})
+    public static String getMacAddress(Context context, final String... excepts) {
+        String macAddress = getMacAddressByNetworkInterface();
+        if (isAddressNotInExcepts(macAddress, excepts)) {
+            return macAddress;
+        }
+        macAddress = getMacAddressByInetAddress();
+        if (isAddressNotInExcepts(macAddress, excepts)) {
+            return macAddress;
+        }
+        macAddress = getMacAddressByWifiInfo(context);
+        if (isAddressNotInExcepts(macAddress, excepts)) {
+            return macAddress;
+        }
+        macAddress = getMacAddressByFile();
+        if (isAddressNotInExcepts(macAddress, excepts)) {
+            return macAddress;
+        }
+        return "";
+    }
+
+    @SuppressLint({"MissingPermission", "HardwareIds"})
+    private static String getMacAddressByWifiInfo(Context context) {
+        try {
+            final WifiManager wifi = (WifiManager) context
+                    .getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wifi != null) {
+                final WifiInfo info = wifi.getConnectionInfo();
+                if (info != null) return info.getMacAddress();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "02:00:00:00:00:00";
+    }
+
+
+    private static String getMacAddressByNetworkInterface() {
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                if (ni == null || !ni.getName().equalsIgnoreCase("wlan0")) continue;
+                byte[] macBytes = ni.getHardwareAddress();
+                if (macBytes != null && macBytes.length > 0) {
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : macBytes) {
+                        sb.append(String.format("%02x:", b));
+                    }
+                    return sb.substring(0, sb.length() - 1);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "02:00:00:00:00:00";
+    }
+
+    private static String getMacAddressByInetAddress() {
+        try {
+            InetAddress inetAddress = getInetAddress();
+            if (inetAddress != null) {
+                NetworkInterface ni = NetworkInterface.getByInetAddress(inetAddress);
+                if (ni != null) {
+                    byte[] macBytes = ni.getHardwareAddress();
+                    if (macBytes != null && macBytes.length > 0) {
+                        StringBuilder sb = new StringBuilder();
+                        for (byte b : macBytes) {
+                            sb.append(String.format("%02x:", b));
+                        }
+                        return sb.substring(0, sb.length() - 1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "02:00:00:00:00:00";
+    }
+
+
+    private static boolean isAddressNotInExcepts(final String address, final String... excepts) {
+        if (excepts == null || excepts.length == 0) {
+            return !"02:00:00:00:00:00".equals(address);
+        }
+        for (String filter : excepts) {
+            if (address.equals(filter)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static InetAddress getInetAddress() {
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                // To prevent phone of xiaomi return "10.0.2.15"
+                if (!ni.isUp()) continue;
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress inetAddress = addresses.nextElement();
+                    if (!inetAddress.isLoopbackAddress()) {
+                        String hostAddress = inetAddress.getHostAddress();
+                        if (hostAddress.indexOf(':') < 0) return inetAddress;
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String getMacAddressByFile() {
+        CommandResult result = execCmd("getprop wifi.interface", false);
+        if (result.result == 0) {
+            String name = result.successMsg;
+            if (name != null) {
+                result = execCmd("cat /sys/class/net/" + name + "/address", false);
+                if (result.result == 0) {
+                    String address = result.successMsg;
+                    if (address != null && address.length() > 0) {
+                        return address;
+                    }
+                }
+            }
+        }
+        return "02:00:00:00:00:00";
+    }
+
+    /**
+     * Execute the command.
+     *
+     * @param command  The command.
+     * @param isRooted True to use root, false otherwise.
+     * @return the single {@link CommandResult} instance
+     */
+    public static CommandResult execCmd(final String command, final boolean isRooted) {
+        return execCmd(new String[]{command}, isRooted, true);
+    }
+
+
+    /**
+     * Execute the command.
+     *
+     * @param commands        The commands.
+     * @param isRooted        True to use root, false otherwise.
+     * @param isNeedResultMsg True to return the message of result, false otherwise.
+     * @return the single {@link CommandResult} instance
+     */
+    public static CommandResult execCmd(final String[] commands,
+                                        final boolean isRooted,
+                                        final boolean isNeedResultMsg) {
+        int result = -1;
+        if (commands == null || commands.length == 0) {
+            return new CommandResult(result, "", "");
+        }
+        Process process = null;
+        BufferedReader successResult = null;
+        BufferedReader errorResult = null;
+        StringBuilder successMsg = null;
+        StringBuilder errorMsg = null;
+        DataOutputStream os = null;
+        try {
+            process = Runtime.getRuntime().exec(isRooted ? "su" : "sh");
+            os = new DataOutputStream(process.getOutputStream());
+            for (String command : commands) {
+                if (command == null) continue;
+                os.write(command.getBytes());
+                os.writeBytes(LINE_SEP);
+                os.flush();
+            }
+            os.writeBytes("exit" + LINE_SEP);
+            os.flush();
+            result = process.waitFor();
+            if (isNeedResultMsg) {
+                successMsg = new StringBuilder();
+                errorMsg = new StringBuilder();
+                successResult = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)
+                );
+                errorResult = new BufferedReader(
+                        new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8)
+                );
+                String line;
+                if ((line = successResult.readLine()) != null) {
+                    successMsg.append(line);
+                    while ((line = successResult.readLine()) != null) {
+                        successMsg.append(LINE_SEP).append(line);
+                    }
+                }
+                if ((line = errorResult.readLine()) != null) {
+                    errorMsg.append(line);
+                    while ((line = errorResult.readLine()) != null) {
+                        errorMsg.append(LINE_SEP).append(line);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (os != null) {
+                    os.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (successResult != null) {
+                    successResult.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                if (errorResult != null) {
+                    errorResult.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (process != null) {
+                process.destroy();
+            }
+        }
+        return new CommandResult(
+                result,
+                successMsg == null ? "" : successMsg.toString(),
+                errorMsg == null ? "" : errorMsg.toString()
+        );
+    }
+
+    /**
+     * The result of command.
+     */
+    public static class CommandResult {
+        public int result;
+        public String successMsg;
+        public String errorMsg;
+
+        public CommandResult(final int result, final String successMsg, final String errorMsg) {
+            this.result = result;
+            this.successMsg = successMsg;
+            this.errorMsg = errorMsg;
+        }
+
+        @Override
+        public String toString() {
+            return "result: " + result + "\n" +
+                    "successMsg: " + successMsg + "\n" +
+                    "errorMsg: " + errorMsg;
+        }
+    }
 }
 

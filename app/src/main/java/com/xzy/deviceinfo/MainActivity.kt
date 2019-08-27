@@ -23,12 +23,14 @@ class MainActivity : AppCompatActivity() {
         val storage = SystemUtils.getTotalInternalMemorySize() + SystemUtils.getAvailableInternalMemorySize() +
                 SystemUtils.getTotalExternalMemorySize() + SystemUtils.getAvailableExternalMemorySize()
         val sensor = SystemUtils.showSensorInfo(this)
+        val mac = SystemUtils.getMacAddress(MainActivity@this)
         basicInfo.text = basic
         memoryInfo.text = memory
         imeiInfo.text = imei
         cpuInfo.text = cpu
         storageInfo.text = storage
         sensorInfo.text = sensor
+        macInfo.text = mac
     }
 
 }

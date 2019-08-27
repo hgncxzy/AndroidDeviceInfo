@@ -89,6 +89,20 @@
                 android:layout_height="wrap_content"
                 android:textColor="#ffffff"
                 android:text=""/>
+
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MAC 地址"
+                android:textSize="30dp"
+                android:textColor="#ffffff"
+                />
+        <TextView
+                android:id="@+id/macInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#ffffff"
+                android:text=""/>
         <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
