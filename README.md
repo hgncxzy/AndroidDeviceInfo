@@ -9,5 +9,5 @@
 
 #### 扫码下载到手机：
 
-<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/apk/apk.png" width = "200"，height = "200"  div align=center/>
+<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/apk/apk.png" width = "200" height = "200"  div align=center/>
 
