@@ -3,3 +3,4 @@
 
 截图如下：
 
+![Image text](https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png width = 300)
