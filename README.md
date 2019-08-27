@@ -3,4 +3,4 @@
 
 截图如下：
 
-![Image text](https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png width = 300)
+<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png" width = "300"  div align=center/>
