@@ -5,9 +5,9 @@
 
 #### 截图如下：
 
-<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png" width = "400"  div align=center/>
+![](https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png)
 
 #### 扫码下载到手机：
 
-<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/apk/apk.png" width = "200" height = "200"  div align=center/>
+![](https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/apk/apk.png)
 
