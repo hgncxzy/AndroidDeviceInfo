@@ -5,7 +5,7 @@
 
 #### 截图如下：
 
-![](https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png,width = 400)
+<img src="https://github.com/hgncxzy/AndroidDeviceInfo/blob/master/screenshot/show.png" width="400px" />   
 
 #### 扫码下载到手机：
 
