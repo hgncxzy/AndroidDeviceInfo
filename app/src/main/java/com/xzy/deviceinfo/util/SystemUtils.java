@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
 
@@ -187,6 +188,7 @@ public class SystemUtils {
                 "屏幕分辨率: " + getScreenWidth(context) + "*" + getScreenHeight(context) + "\n" +
                 "APP 分辨率(去掉状态栏高度和导航栏): " + getAppScreenWidth(context) + "*" + getAppScreenHeight(context) + "\n" +
                 "DPI: " + getScreenDensityDpi() + "\n" +
+                "屏幕尺寸: " + getScreenSize(context) + "\n" +
                 "系统版本: Android " + Build.VERSION.RELEASE + "\n";
         return sysVersionInfo;
     }
@@ -779,6 +781,20 @@ public class SystemUtils {
                     "successMsg: " + successMsg + "\n" +
                     "errorMsg: " + errorMsg;
         }
+    }
+
+    public static String getScreenSize(Context context) {
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        float density = metrics.density;// 密度值
+        float xdpi = metrics.xdpi;
+//        float ydpi = metrics.ydpi;
+//        double zdpi = Math.sqrt(Math.pow(xdpi, 2) + Math.pow(ydpi, 2));
+        int width = metrics.widthPixels;
+        int height = metrics.heightPixels;
+        double z = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
+        double f = (z / (xdpi * density));
+        Log.i("", "屏幕尺寸：" + f);
+        return f + "";
     }
 }
 
