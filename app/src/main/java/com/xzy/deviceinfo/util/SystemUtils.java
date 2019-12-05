@@ -188,7 +188,6 @@ public class SystemUtils {
                 "屏幕分辨率: " + getScreenWidth(context) + "*" + getScreenHeight(context) + "\n" +
                 "APP 分辨率(去掉状态栏高度和导航栏): " + getAppScreenWidth(context) + "*" + getAppScreenHeight(context) + "\n" +
                 "DPI: " + getScreenDensityDpi() + "\n" +
-                "屏幕尺寸: " + getScreenSize(context) + "\n" +
                 "系统版本: Android " + Build.VERSION.RELEASE + "\n";
         return sysVersionInfo;
     }
@@ -783,18 +782,26 @@ public class SystemUtils {
         }
     }
 
-    public static String getScreenSize(Context context) {
-        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        float density = metrics.density;// 密度值
-        float xdpi = metrics.xdpi;
-//        float ydpi = metrics.ydpi;
-//        double zdpi = Math.sqrt(Math.pow(xdpi, 2) + Math.pow(ydpi, 2));
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
-        double z = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
-        double f = (z / (xdpi * density));
-        Log.i("", "屏幕尺寸：" + f);
-        return f + "";
+    /**
+     * 不建议使用！！！
+     * 得到屏幕的物理尺寸，由于该尺寸是在出厂时，厂商写死的，所以仅供参考
+     * 计算方法：获取到屏幕的分辨率:point.x和point.y，再取出屏幕的DPI（每英寸的像素数量），
+     * 计算长和宽有多少英寸，即：point.x / dm.xdpi，point.y / dm.ydpi，屏幕的长和宽算出来了，
+     * 再用勾股定理，计算出斜角边的长度，即屏幕尺寸。
+     * @param context
+     * @return
+     */
+    public static double getPhysicsScreenSize(Context context){
+        WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        Point point = new Point();
+        manager.getDefaultDisplay().getRealSize(point);
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        int densityDpi = dm.densityDpi;//得到屏幕的密度值，但是该密度值只能作为参考，因为他是固定的几个密度值。
+        double x = Math.pow(point.x / dm.xdpi, 2);//dm.xdpi是屏幕x方向的真实密度值，比上面的densityDpi真实。
+        double y = Math.pow(point.y / dm.ydpi, 2);//dm.xdpi是屏幕y方向的真实密度值，比上面的densityDpi真实。
+        double screenInches = Math.sqrt(x + y);
+        return screenInches;
     }
+
 }
 
