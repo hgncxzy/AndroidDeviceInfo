@@ -227,7 +227,9 @@ public class SystemUtils {
      */
     public static int getScreenWidth(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        if (wm == null) return -1;
+        if (wm == null) {
+            return -1;
+        }
         Point point = new Point();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             wm.getDefaultDisplay().getRealSize(point);
@@ -244,7 +246,9 @@ public class SystemUtils {
      */
     public static int getScreenHeight(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        if (wm == null) return -1;
+        if (wm == null) {
+            return -1;
+        }
         Point point = new Point();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             wm.getDefaultDisplay().getRealSize(point);
@@ -364,7 +368,9 @@ public class SystemUtils {
      */
     public static int getAppScreenWidth(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        if (wm == null) return -1;
+        if (wm == null) {
+            return -1;
+        }
         Point point = new Point();
         wm.getDefaultDisplay().getSize(point);
         return point.x;
@@ -377,7 +383,9 @@ public class SystemUtils {
      */
     public static int getAppScreenHeight(Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        if (wm == null) return -1;
+        if (wm == null) {
+            return -1;
+        }
         Point point = new Point();
         wm.getDefaultDisplay().getSize(point);
         return point.y;
@@ -498,7 +506,9 @@ public class SystemUtils {
     @RequiresPermission(allOf = {ACCESS_WIFI_STATE, INTERNET})
     public static String getMacAddress(Context context) {
         String macAddress = getMacAddress(context, (String[]) null);
-        if (!macAddress.equals("") || getWifiEnabled(context)) return macAddress;
+        if (!macAddress.equals("") || getWifiEnabled(context)) {
+            return macAddress;
+        }
         setWifiEnabled(true, context);
         setWifiEnabled(false, context);
         return getMacAddress(context, (String[]) null);
@@ -507,14 +517,18 @@ public class SystemUtils {
     private static boolean getWifiEnabled(Context context) {
         @SuppressLint("WifiManagerLeak")
         WifiManager manager = (WifiManager) context.getSystemService(WIFI_SERVICE);
-        if (manager == null) return false;
+        if (manager == null) {
+            return false;
+        }
         return manager.isWifiEnabled();
     }
 
     private static void setWifiEnabled(final boolean enabled, Context context) {
         @SuppressLint("WifiManagerLeak")
         WifiManager manager = (WifiManager) context.getSystemService(WIFI_SERVICE);
-        if (manager == null) return;
+        if (manager == null) {
+            return;
+        }
         manager.setWifiEnabled(enabled);
     }
 
@@ -553,7 +567,9 @@ public class SystemUtils {
                     .getApplicationContext().getSystemService(WIFI_SERVICE);
             if (wifi != null) {
                 final WifiInfo info = wifi.getConnectionInfo();
-                if (info != null) return info.getMacAddress();
+                if (info != null) {
+                    return info.getMacAddress();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -567,7 +583,9 @@ public class SystemUtils {
             Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
             while (nis.hasMoreElements()) {
                 NetworkInterface ni = nis.nextElement();
-                if (ni == null || !ni.getName().equalsIgnoreCase("wlan0")) continue;
+                if (ni == null || !ni.getName().equalsIgnoreCase("wlan0")) {
+                    continue;
+                }
                 byte[] macBytes = ni.getHardwareAddress();
                 if (macBytes != null && macBytes.length > 0) {
                     StringBuilder sb = new StringBuilder();
@@ -624,13 +642,17 @@ public class SystemUtils {
             while (nis.hasMoreElements()) {
                 NetworkInterface ni = nis.nextElement();
                 // To prevent phone of xiaomi return "10.0.2.15"
-                if (!ni.isUp()) continue;
+                if (!ni.isUp()) {
+                    continue;
+                }
                 Enumeration<InetAddress> addresses = ni.getInetAddresses();
                 while (addresses.hasMoreElements()) {
                     InetAddress inetAddress = addresses.nextElement();
                     if (!inetAddress.isLoopbackAddress()) {
                         String hostAddress = inetAddress.getHostAddress();
-                        if (hostAddress.indexOf(':') < 0) return inetAddress;
+                        if (hostAddress.indexOf(':') < 0) {
+                            return inetAddress;
+                        }
                     }
                 }
             }
@@ -694,7 +716,9 @@ public class SystemUtils {
             process = Runtime.getRuntime().exec(isRooted ? "su" : "sh");
             os = new DataOutputStream(process.getOutputStream());
             for (String command : commands) {
-                if (command == null) continue;
+                if (command == null) {
+                    continue;
+                }
                 os.write(command.getBytes());
                 os.writeBytes(LINE_SEP);
                 os.flush();
